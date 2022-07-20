@@ -1,27 +1,10 @@
-# %% [markdown]
-# # install packages
-
-# %%
 from neo4j import GraphDatabase
-import multiprocessing as mp
-import pandas as pd
 import random
 import string
-import os
-import pickle
-import time
-from py2neo import Graph 
 
-# %% [markdown]
-# # EXECUTE: WalletClustering_neo4jConnect notebook
 
-# %%
-#%run ./WalletClustering_neo4jConnect.ipynb # includes Neo4J connector
-# methods & variables of notebook can be referenced
 
-#session = Graph("neo4j://127.0.0.1:7687", auth=("team", "F0110wTh€M0n€y"))
 
-# %%
 class Neo4jConnection:
     
     def __init__(self, uri, user, pwd):
@@ -54,51 +37,27 @@ class Neo4jConnection:
 
 conn = Neo4jConnection(uri="neo4j://127.0.0.1:7687", user="team", pwd="F0110wTh€M0n€y")
 
-# %% [markdown]
-# # cluster wallets
 
-# %%
 mihTemplate = '''
 MATCH (:Address{address:"%s"})-[:SENDS]->(t:Transaction),
 (walletMember:Address)-[:SENDS]->(t:Transaction)
 RETURN DISTINCT walletMember
 '''
-#address
 
-# %%
-# use existing terrorAddressList if exists
-if not os.path.exists('output\\terrorAddressList.pickle'):
-    createTerrorAddressList()
+query_update = """CALL apoc.periodic.iterate( 'UNWIND $addresses as item return item',
+                        'Match (a:Address {address: item}) set a.association = "%s" return a', 
+                        {batchSize:1000, parallel:true, iterateList:true, params:{addresses:%s}})"""
 
-terrorAddressList = pickle.load(open('output\\terrorAddressList.pickle', 'rb'))
-print(terrorAddressList)
-
-# %%
-mihWhere = """MATCH (a:Address)-[:SENDS]->(t:Transaction), (walletMember:Address)-[:SENDS]->(t:Transaction) 
-where a.address in [\"{0}\",\"{1}\",\"{2}\",\"{3}\",\"{4}\",\"{5}\",\"{6}\",\"{7}\",\"{8}\",\"{9}\"]
-RETURN DISTINCT walletMember"""
-
-# %%
-def updateWalletAddresses(address, walletName):
-  
-  query = """CALL apoc.periodic.iterate( 'MATCH (a:Address {address: "%s"})-[:SENDS]->(t:Transaction), (walletMember:Address)-[:SENDS]->(t:Transaction) RETURN  walletMember',
-  'set walletMember.association = "%s"', {batchSize:1000, parallel:true})""" % (address, walletName)
-  return query
-
-
-# %%
 check_association = """Match (a:Address {address: '%s'}) 
 where a.association is not null
 return true"""
 
 
-
-# %%
 mihWhereList = """MATCH (a:Address)-[:SENDS]->(t:Transaction), (walletMember:Address)-[:SENDS]->(t:Transaction) 
 where a.address in %s
 RETURN DISTINCT walletMember"""
 
-# %%
+
 # Iterating through the addresses and finding all the addresses that are connected to the input address.
 # Store all responses in a dictionary and instead of looping over every item and adding only new Addresses to the list,
 # write all records of a response into the dictionary. They addresses are the keys
@@ -157,14 +116,14 @@ def iterMultiInputClustering_chunks(address):
     # alle Association des Wallets suchen und mit der Blacklist vergleichen; falls es eine Übereinstimmung gibt setze die Ass. der Blacklist
     
     
-    print("Updating ... "+ str(address) +", with size " + str(len(walletAddresses)) + ": " + walletString)
     list_of_Addresses = str(list(walletAddresses))
+    query_assoc = "MATCH (a:Address)  where a.address in %s RETURN DISTINCT a.association"
+    result = conn.query(query_assoc % list_of_Addresses, db='neo4j')
     
-    query = """CALL apoc.periodic.iterate( 'UNWIND $addresses as item return item',
-                    'Match (a:Address {address: item}) set a.association = "%s" return a', 
-                    {batchSize:1000, parallel:true, iterateList:true, params:{addresses:%s}})""" % (walletString, list_of_Addresses)
-    result = conn.query(query,db='neo4j')
-    print(result)
+    if result[0] is not None:
+        walletString = result[0][0]
+    print("Updating ... "+ str(address) +", with size " + str(len(walletAddresses)) + ": " + walletString) 
+    result = conn.query(query_update % (walletString, list_of_Addresses),db='neo4j')
     return walletAddresses, walletString
 
 
