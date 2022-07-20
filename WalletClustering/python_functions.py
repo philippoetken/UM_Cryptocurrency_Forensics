@@ -94,20 +94,6 @@ return true"""
 
 
 # %%
-# additional remarks and examples
-#print(len(wallets))
-#output of 13iQsrwBYdrLpnitG5EV79o3PeHjH8XUBc:  
-"""137373
-Execution time Query: 3572.6374530792236 seconds
-Execution time inWallet: 158.30259037017822 seconds
-Execution time IF: 0.022434473037719727 seconds   | Going into statement:  2  times."""
-#1EYya5dfNvuYDwpeboGKBtkXzJcEHMCQXR '1PeSDEMzi7nj1ah4YFcgnRmijWpgQqP3Yp' '1P963yWMBFkUouU2Me7cQ6136orZDD4gTf' '1KFiRjjvE4rtheuEYGo9VeDDBvGgmm7nRg' exchanges: Btc38.com-1CELa15H4DMzHtHnuz7LCpSFgFWf61Ra6A, 
-# QuadrigaCX.com-1LQF9Suqgm4YtxY6kriiE8DJftNTPTqwAm, CoinHako.com- 3PpSAGEGfA9e995bpCkAFdKaw3fMmo8Eyw, MaiCoin.com - 1Lfktsua4x25UcsqDeuXUrXZq3jSoPpJ1b, Hashnest - 1D7JStLYKJ2ma6yfH7a7DXSom5ZPfyfNM3
-#wallets
-#no batching: 1EYya5dfNvuYDwpeboGKBtkXzJcEHMCQXR - 7sec, 13iQsrwBYdrLpnitG5EV79o3PeHjH8XUBc - cancelled after 4 hours, 
-#batching with 6: 1EYya5dfNvuYDwpeboGKBtkXzJcEHMCQXR - 1.3sec, 13iQsrwBYdrLpnitG5EV79o3PeHjH8XUBc - cancelled after 6 hours
-
-# %%
 mihWhereList = """MATCH (a:Address)-[:SENDS]->(t:Transaction), (walletMember:Address)-[:SENDS]->(t:Transaction) 
 where a.address in %s
 RETURN DISTINCT walletMember"""
@@ -182,29 +168,5 @@ def iterMultiInputClustering_chunks(address):
     return walletAddresses, walletString
 
 
-# %%
-def clusterAddresses(addressList):
-    failing_addresses = []
-    for address in addressList:
-        response = conn.query(check_association % address,db='neo4j')
-        if not response:
-            try:
-                iterMultiInputClustering_chunks(address)
-            except TypeError:
-                print(address + " could not be clustered due to internal failure!")
-                failing_addresses.append(address)
-                continue
-        else:
-            print(address + ": There is already an association in the DB")
-    return  failing_addresses
-#terrorAddressList.remove("1QH9hfeSSb2iftcVpgpQp3NsFD174crFoW") -> 2.1 mio entries
-#terrorAddressList.remove("3PajPWymUexhewHPczmLQ8CMYatKAGNj3y") -> 34 mio entries
-#addresses = ["12sDU3FyYJXc2oRzE6XXuuhVHCBJvaoCC8"]
-#failed_addresses = clusterAddresses(addresses)
-
-#addresses = ["1JpSBaUwrZaEgmsYka7mzm9t3Z4syyaw7A"]
-#codes = clusterAddresses(addresses)
-
-#print(list(codes.keys()))
 
 
