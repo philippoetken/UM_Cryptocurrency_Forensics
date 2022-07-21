@@ -120,7 +120,7 @@ def iterMultiInputClustering_chunks(address):
     query_assoc = "MATCH (a:Address)  where a.address in %s RETURN DISTINCT a.association"
     result = conn.query(query_assoc % list_of_Addresses, db='neo4j')
     
-    if result[0] is not None:
+    if result[0][0] is not None:
         walletString = result[0][0]
     print("Updating ... "+ str(address) +", with size " + str(len(walletAddresses)) + ": " + walletString) 
     result = conn.query(query_update % (walletString, list_of_Addresses),db='neo4j')
