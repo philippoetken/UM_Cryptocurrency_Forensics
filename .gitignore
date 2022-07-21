@@ -2,3 +2,4 @@ blacklistAddresses.pickle
 WalletExplorerScraper/output*
 EntityAddressBitcoin*
 .vscode*
+WalletClustering/output*
