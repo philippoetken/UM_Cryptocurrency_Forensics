@@ -1,42 +1,7 @@
 from neo4j import GraphDatabase
 import random
 import string
-
-
-
-
-class Neo4jConnection:
-    
-    def __init__(self, uri, user, pwd):
-        self.__uri = uri
-        self.__user = user
-        self.__pwd = pwd
-        self.__driver = None
-        try:
-            self.__driver = GraphDatabase.driver(self.__uri, auth=(self.__user, self.__pwd))
-        except Exception as e:
-            print("Failed to create the driver:", e)
-        
-    def close(self):
-        if self.__driver is not None:
-            self.__driver.close()
-        
-    def query(self, query, db=None):
-        assert self.__driver is not None, "Driver not initialized!"
-        session = None
-        response = None
-        try: 
-            session = self.__driver.session(database=db) if db is not None else self.__driver.session() 
-            response = list(session.run(query))
-        except Exception as e:
-            print("Query failed:", e)
-        finally: 
-            if session is not None:
-                session.close()
-        return response
-
-conn = Neo4jConnection(uri="neo4j://127.0.0.1:7687", user="team", pwd="F0110wTh€M0n€y")
-
+import WalletClustering_neo4jConnect
 
 mihTemplate = '''
 MATCH (:Address{address:"%s"})-[:SENDS]->(t:Transaction),
@@ -62,12 +27,12 @@ RETURN DISTINCT walletMember"""
 # Store all responses in a dictionary and instead of looping over every item and adding only new Addresses to the list,
 # write all records of a response into the dictionary. They addresses are the keys
 # additionally use a batched version if the amount of retrieved records is greater than 10
-def iterMultiInputClustering_chunks(address):
+def iterMultiInputClustering_chunks(address, setAssociationTo = 'RandomString'):
     
     chunk_size = 500
     # create initial set of addresses
     walletAddresses = {address: 1}
-    conn = Neo4jConnection(uri="neo4j://127.0.0.1:7687", user="team", pwd="F0110wTh€M0n€y")
+    conn = WalletClustering_neo4jConnect.conn
     response = conn.query(mihTemplate % address, db='neo4j')
 
     # store every found address as key in the dictionary, values do not matter here, so we just pass 1
@@ -107,14 +72,16 @@ def iterMultiInputClustering_chunks(address):
             i += chunk_size
             list_ofKeys = list(walletAddresses.keys())
     
-    source = string.ascii_letters + string.digits
-    walletString = ''.join((random.choice(source) for i in range(32)))
+    if setAssociationTo == 'RandomString':
+        source = string.ascii_letters + string.digits
+        walletString = ''.join((random.choice(source) for i in range(32)))
+    else:
+        walletString = setAssociationTo
     # bevor update prüfe ob es in dem wallet nicht bereits associations gibt
     # -> Beispiel von neue Adresse die zu Binance dazugehört
     # Was passiert mit Wallets die zusammengeführt werden zu einem späteren Zeitpunkt
     # -> Übernimm die erste association 
     # alle Association des Wallets suchen und mit der Blacklist vergleichen; falls es eine Übereinstimmung gibt setze die Ass. der Blacklist
-    
     
     list_of_Addresses = str(list(walletAddresses))
     query_assoc = "MATCH (a:Address)  where a.address in %s RETURN DISTINCT a.association"
