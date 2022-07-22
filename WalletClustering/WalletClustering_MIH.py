@@ -89,6 +89,7 @@ def iterMultiInputClustering_chunks(address, setAssociationTo = 'RandomString'):
     query_assoc = "MATCH (a:Address)  where a.address in %s RETURN DISTINCT a.association"
     try:
         
+        #pass only a certain amount of addresses at once to the database. Otherwise you get an Out of Heap error
         for group in chunker(list(walletAddresses), 50000):
             result = conn.query(query_assoc % str(list(group)), db='neo4j')
             if result[0][0] is not None:
