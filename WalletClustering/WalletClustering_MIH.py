@@ -22,6 +22,8 @@ mihWhereList = """MATCH (a:Address)-[:SENDS]->(t:Transaction), (walletMember:Add
 where a.address in %s
 RETURN DISTINCT walletMember"""
 
+def chunker(seq, size):
+    return (seq[pos:pos + size] for pos in range(0, len(seq), size))
 
 # Iterating through the addresses and finding all the addresses that are connected to the input address.
 # Store all responses in a dictionary and instead of looping over every item and adding only new Addresses to the list,
@@ -29,7 +31,7 @@ RETURN DISTINCT walletMember"""
 # additionally use a batched version if the amount of retrieved records is greater than 10
 def iterMultiInputClustering_chunks(address, setAssociationTo = 'RandomString'):
     
-    chunk_size = 500
+    chunk_size = 1500
     # create initial set of addresses
     walletAddresses = {address: 1}
     conn = WalletClustering_neo4jConnect.conn
@@ -82,16 +84,20 @@ def iterMultiInputClustering_chunks(address, setAssociationTo = 'RandomString'):
     # Was passiert mit Wallets die zusammengeführt werden zu einem späteren Zeitpunkt
     # -> Übernimm die erste association 
     # alle Association des Wallets suchen und mit der Blacklist vergleichen; falls es eine Übereinstimmung gibt setze die Ass. der Blacklist
-    
+
     list_of_Addresses = str(list(walletAddresses))
     query_assoc = "MATCH (a:Address)  where a.address in %s RETURN DISTINCT a.association"
-    result = conn.query(query_assoc % list_of_Addresses, db='neo4j')
-    
-    if result[0][0] is not None:
-        walletString = result[0][0]
-    print("Updating ... "+ str(address) +", with size " + str(len(walletAddresses)) + ": " + walletString) 
-    result = conn.query(query_update % (walletString, list_of_Addresses),db='neo4j')
-    return walletAddresses, walletString
+    try:
+        
+        for group in chunker(list(walletAddresses), 50000):
+            result = conn.query(query_assoc % str(list(group)), db='neo4j')
+            if result[0][0] is not None:
+                walletString = result[0][0]
+            print("Updating ... "+ str(address) +", with size " + str(len(walletAddresses)) + ": " + walletString) 
+            result = conn.query(query_update % (walletString, list_of_Addresses),db='neo4j')
+        return walletAddresses, walletString
+    except Exception as err:
+        return walletAddresses, err  
 
 
 
