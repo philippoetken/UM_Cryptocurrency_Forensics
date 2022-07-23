@@ -95,7 +95,7 @@ def iterMultiInputClustering_chunks(address, setAssociationTo = 'RandomString'):
             if result[0][0] is not None:
                 walletString = result[0][0]
             print("Updating ... "+ str(address) +", with size " + str(len(walletAddresses)) + ": " + walletString) 
-            result = conn.query(query_update % (walletString, list_of_Addresses),db='neo4j')
+            result = conn.query(query_update % (walletString, str(list(group))),db='neo4j')
         return walletAddresses, walletString
     except Exception as err:
         return walletAddresses, err  
