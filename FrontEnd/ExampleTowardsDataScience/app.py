@@ -279,6 +279,10 @@ app.layout = html.Div([
     dash.dependencies.Output('my-graph', 'figure'),
     [dash.dependencies.Input('my-range-slider', 'value'), dash.dependencies.Input('input1', 'value')])
 def update_output(value,input1):
+    print('------------------------')
+    print('value',value), 
+    print('input1',input1)
+
     YEAR = value
     ACCOUNT = input1
     return network_graph(value, input1)
